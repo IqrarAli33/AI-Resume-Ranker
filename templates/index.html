@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+
+<html lang="en" data-bs-theme="light">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>AI Resume Ranker</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet" />
+  <style>
+    :root {
+      --card-r: 1.25rem;
+    }
+
+    body {
+      background: radial-gradient(1200px 700px at 15% -10%, #e9f1ff 0%, transparent 55%),
+        radial-gradient(1100px 600px at 110% 0%, #eafff4 0%, transparent 55%),
+        linear-gradient(180deg, #f7f8fb 0%, #ffffff 70%);
+      min-height: 100dvh;
+    }
+
+    [data-bs-theme="dark"] body {
+      background: radial-gradient(1200px 700px at 15% -10%, #2e353b 0%, transparent 55%),
+        radial-gradient(1100px 600px at 110% 0%, #343a40 0%, transparent 55%),
+        linear-gradient(180deg, #2b3035 0%, #2f353b 70%);
+    }
+
+    [data-bs-theme="dark"] .hero {
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    [data-bs-theme="dark"] .blur-card {
+      background: rgba(28, 32, 36, 0.85);
+      border-color: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(8px);
+    }
+
+    [data-bs-theme="dark"] .hero-badge {
+      color: #d1d1d1;
+    }
+
+    [data-bs-theme="dark"] .text-secondary,
+    [data-bs-theme="dark"] .tiny {
+      color: #adb5bd;
+    }
+
+    [data-bs-theme="dark"] .form-control {
+      background-color: #3a4148;
+      color: #f8f9fa;
+      border-color: #6c757d;
+    }
+
+    [data-bs-theme="dark"] .form-control:focus {
+      border-color: #0d6efd;
+      box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+    }
+
+    [data-bs-theme="dark"] .badge {
+      color: #f8f9fa;
+      background-color: #212529;
+    }
+
+    [data-bs-theme="dark"] .badge.text-bg-primary {
+      background-color: #007bff;
+    }
+
+    [data-bs-theme="dark"] .badge.text-bg-success {
+      background-color: #28a745;
+    }
+
+    [data-bs-theme="dark"] .progress-bar {
+      background-color: #007bff;
+    }
+
+    [data-bs-theme="dark"] .dropdown-menu {
+      background-color: #212529;
+    }
+
+    [data-bs-theme="dark"] .btn-outline-primary {
+      color: #007bff;
+      border-color: #007bff;
+    }
+
+    [data-bs-theme="dark"] .btn-outline-primary:hover {
+      background-color: #007bff;
+      color: #fff;
+    }
+
+    #fileChips {
+      max-height: 200px;
+      overflow-y: auto;
+      padding-right: 6px;
+    }
+
+    .blur-card {
+      background: rgba(255, 255, 255, 0.85);
+      border: 1px solid rgba(0, 0, 0, 0.06);
+      border-radius: var(--card-r);
+      backdrop-filter: blur(8px);
+      box-shadow: 0 10px 30px rgba(16, 24, 40, .06);
+    }
+
+    [data-bs-theme="dark"] .blur-card {
+      background: rgba(20, 22, 25, 0.6);
+      border-color: rgba(255, 255, 255, 0.06);
+    }
+
+    .hero {
+      position: relative;
+      overflow: clip;
+      border-bottom: 1px solid rgba(0, 0, 0, .06);
+    }
+
+    .hero-badge {
+      letter-spacing: .2px;
+      border-radius: 999px;
+    }
+
+    .pulse {
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% {
+        transform: translateZ(0) scale(1);
+        opacity: 1;
+      }
+      50% {
+        transform: translateZ(0) scale(1.02);
+        opacity: .95;
+      }
+    }
+
+    .dropzone {
+      border: 2px dashed #cfd8e3;
+      border-radius: 1rem;
+      transition: border-color .2s, background-color .2s, transform .2s;
+    }
+
+    .dropzone.dragover {
+      border-color: #0d6efd;
+      background-color: #eef6ff;
+      transform: scale(1.01);
+    }
+
+    .file-chip {
+      border-radius: .75rem;
+    }
+
+    .soft {
+      box-shadow: 0 8px 20px rgba(0, 0, 0, .06);
+    }
+
+    .kbd {
+      border: 1px solid currentColor;
+      border-radius: .5rem;
+      padding: .05rem .35rem;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-size: .85em;
+      opacity: .8;
+    }
+
+    .progress.fine .progress-bar {
+      transition: width .25s ease;
+    }
+
+    .floating-help {
+      position: sticky;
+      top: .75rem;
+      z-index: 10;
+    }
+
+    .tiny {
+      font-size: .925rem;
+      color: #667085;
+    }
+
+    [data-bs-theme="dark"] .tiny {
+      color: #98a2b3;
+    }
+  </style>
+</head>
+
+<body>
+
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm">
+    <div class="container">
+      <a class="navbar-brand fw-semibold" href="{{ url_for('index') }}">
+        AI Resume Ranker
+      </a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div id="navMenu" class="collapse navbar-collapse">
+        <ul class="navbar-nav ms-auto">
+          <li class="nav-item"><a class="nav-link active" href="{{ url_for('index') }}"><i
+                class="bi bi-house-door me-1"></i>Home</a></li>
+          <li class="nav-item"><a class="nav-link" href="{{ url_for('history') }}"><i
+                class="bi bi-clock-history me-1"></i>Feedback History</a></li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <header class="hero py-5">
+    <div class="container">
+      <div class="row align-items-center gy-4">
+        <div class="col-lg-7">
+         
+          <h1 class="display-6 fw-bold mb-3">Fast, intuitive resume ranking</h1>
+          <p class="lead text-secondary mb-0">
+            Paste a JD, upload resumes, and get ranked matches—no extra setup. <span
+              class="d-none d-md-inline">Everything fits neatly into your current workflow.</span>
+          </p>
+        </div>
+        <div class="col-lg-5">
+          <div class="blur-card p-3 p-md-4 soft">
+            <div class="d-flex align-items-start">
+              <div class="me-3"><i class="bi bi-lightning-charge-fill text-warning fs-2 pulse"></i></div>
+              <div>
+                <div class="fw-semibold mb-1">Pro tip</div>
+                <div class="text-secondary">Call out must-haves (e.g., <em>Python, SQL, NLP</em>) for sharper scoring.</div>
+                <div class="mt-2 tiny"><i class="bi bi-keyboard me-1"></i> Shortcut: <span class="kbd">Ctrl</span> +
+                  <span class="kbd">Enter</span> to submit
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="container my-5">
+    <div class="card border-0 shadow-lg rounded-4">
+      <div class="card-body p-4 p-lg-5">
+
+        <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center floating-help mb-3">
+          <div class="d-flex align-items-right gap-3">
+            <div class="form-check form-switch m-0">
+              <input class="form-check-input" type="checkbox" id="themeToggle">
+              <label class="form-check-label" for="themeToggle"><i class="bi bi-moon-stars me-1"></i>Dark mode</label>
+            </div>
+            <button class="btn btn-outline-secondary btn-sm" id="clearBtn" type="button">
+              <i class="bi bi-eraser me-1"></i>Reset
+            </button>
+          </div>
+        </div>
+
+        <div class="row g-3 mb-4">
+          <div class="col-md-6">
+            <div class="blur-card p-3 soft h-100">
+              <div class="d-flex align-items-center">
+                <div class="me-3"><span class="badge rounded-pill text-bg-primary px-3 py-2">1</span></div>
+                <div>
+                  <div class="fw-semibold">Paste the job description</div>
+                  <div class="tiny">Role, responsibilities, and must-have skills</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="blur-card p-3 soft h-100">
+              <div class="d-flex align-items-center">
+                <div class="me-3"><span class="badge rounded-pill text-bg-success px-3 py-2">2</span></div>
+                <div>
+                  <div class="fw-semibold">Upload resumes</div>
+                  <div class="tiny">PDF/DOC/DOCX — select multiple files</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mb-4">
+          <label class="form-label fw-semibold mb-1">Readiness</label>
+          <div class="progress fine" role="progressbar" aria-label="Form readiness">
+            <div class="progress-bar" id="readyBar" style="width:0%;">0%</div>
+          </div>
+          <div class="tiny mt-1" id="readyHint">Add a clear JD and at least one resume.</div>
+        </div>
+
+        <form method="POST" enctype="multipart/form-data" id="rankForm" class="needs-validation" novalidate>
+          <div class="mb-4">
+            <label class="form-label fw-semibold">Paste Job Description</label>
+            <textarea class="form-control form-control-lg" name="jd_text" id="jd_text" rows="7"
+              placeholder="Paste the full JD here: title, scope, key responsibilities, must-have skills, nice-to-haves, and location."
+              required></textarea>
+
+            <div class="d-flex justify-content-between mt-2">
+              <small class="text-secondary">Use the exact keywords the role requires.</small>
+              <small class="text-secondary">
+                <span id="jdWords">0</span> words • <span id="jdChars">0</span> chars
+                <span class="ms-2" id="qualityBadge"></span>
+              </small>
+            </div>
+
+            <div class="form-text">Tip: ~60–80 words is a solid starting point.</div>
+            <div class="invalid-feedback">Please paste the job description.</div>
+          </div>
+
+          <div class="mb-4">
+            <label class="form-label fw-semibold">Upload Resumes (DOC/DOCX/PDF)</label>
+
+            <div id="dropzone" class="dropzone p-4 text-center">
+              <i class="bi bi-cloud-arrow-up fs-1 d-block mb-2"></i>
+              <p class="mb-1">Drag and drop resumes here</p>
+              <p class="text-secondary mb-3">or</p>
+              <input class="form-control" type="file" id="resumes" name="resumes" multiple accept=".pdf,.doc,.docx"
+                hidden>
+              <button type="button" id="browseBtn" class="btn btn-outline-primary">
+                <i class="bi bi-folder2-open me-1"></i>Browse files
+              </button>
+              <div class="small text-secondary mt-2">Accepted formats: PDF, DOC, DOCX</div>
+            </div>
+
+            <div id="fileChips" class="d-flex flex-wrap gap-2 mt-3"></div>
+            <div class="form-text">Remove a file anytime by clicking the × next to it.</div>
+          </div>
+
+          <div class="d-grid d-sm-flex gap-2">
+            <button type="submit" class="btn btn-primary btn-lg" id="submitBtn">
+              <span class="submit-label"><i class="bi bi-rocket me-2"></i>Rank resumes</span>
+              <span class="submit-loading d-none"><span class="spinner-border spinner-border-sm me-2" role="status"
+                  aria-hidden="true"></span>Processing…</span>
+            </button>
+            <button type="reset" class="btn btn-light btn-lg border">Clear</button>
+          </div>
+        </form>
+
+        <hr class="my-4" />
+        <div class="tiny">
+          By uploading files, you confirm you’re allowed to process them.
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <div class="position-fixed bottom-0 end-0 p-3" style="z-index:1080">
+    <div id="toastHint" class="toast align-items-center text-bg-dark border-0" role="status" aria-live="polite"
+      aria-atomic="true">
+      <div class="d-flex">
+        <div class="toast-body">
+          Pro tip: Press <span class="kbd">Ctrl</span> + <span class="kbd">Enter</span> to submit instantly.
+        </div>
+        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"
+          aria-label="Close"></button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    const html = document.documentElement;
+    const jd = document.getElementById('jd_text');
+    const jdWords = document.getElementById('jdWords');
+    const jdChars = document.getElementById('jdChars');
+    const qualityBadge = document.getElementById('qualityBadge');
+    const dropzone = document.getElementById('dropzone');
+    const resumesInput = document.getElementById('resumes');
+    const browseBtn = document.getElementById('browseBtn');
+    const fileChips = document.getElementById('fileChips');
+    const clearBtn = document.getElementById('clearBtn');
+    const form = document.getElementById('rankForm');
+    const submitBtn = document.getElementById('submitBtn');
+    const readyBar = document.getElementById('readyBar');
+    const readyHint = document.getElementById('readyHint');
+    const themeToggle = document.getElementById('themeToggle');
+
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme) {
+      html.setAttribute('data-bs-theme', savedTheme);
+      themeToggle.checked = savedTheme === 'dark';
+    } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      html.setAttribute('data-bs-theme', 'dark');
+      themeToggle.checked = true;
+    }
+    themeToggle.addEventListener('change', () => {
+      const t = themeToggle.checked ? 'dark' : 'light';
+      html.setAttribute('data-bs-theme', t);
+      localStorage.setItem('theme', t);
+    });
+
+    const quality = (w) => {
+      if (w >= 150) return { label: 'Excellent', cls: 'badge text-bg-success' };
+      if (w >= 90) return { label: 'Good', cls: 'badge text-bg-primary' };
+      if (w >= 60) return { label: 'Okay', cls: 'badge text-bg-warning' };
+      return { label: 'Short', cls: 'badge text-bg-secondary' };
+    };
+    const updateJDStats = () => {
+      const text = jd.value.trim();
+      const words = text ? text.split(/\s+/).length : 0;
+      jdWords.textContent = words;
+      jdChars.textContent = text.length;
+      const q = quality(words);
+      qualityBadge.className = q.cls;
+      qualityBadge.textContent = q.label;
+      updateReadiness();
+    };
+    jd.addEventListener('input', updateJDStats);
+    updateJDStats();
+
+    browseBtn.addEventListener('click', () => resumesInput.click());
+    ['dragenter', 'dragover'].forEach(evt =>
+      dropzone.addEventListener(evt, e => {
+        e.preventDefault(); e.stopPropagation();
+        dropzone.classList.add('dragover');
+      })
+    );
+    ['dragleave', 'drop'].forEach(evt =>
+      dropzone.addEventListener(evt, e => {
+        e.preventDefault(); e.stopPropagation();
+        if (evt !== 'drop') dropzone.classList.remove('dragover');
+      })
+    );
+    dropzone.addEventListener('drop', e => {
+      dropzone.classList.remove('dragover');
+      if (!e.dataTransfer.files?.length) return;
+      const dt = new DataTransfer();
+      if (resumesInput.files?.length) {
+        [...resumesInput.files].forEach(f => dt.items.add(f));
+      }
+      [...e.dataTransfer.files].forEach(f => dt.items.add(f));
+      resumesInput.files = dt.files;
+      renderChips();
+    });
+    resumesInput.addEventListener('change', renderChips);
+
+    function renderChips() {
+      fileChips.innerHTML = '';
+      const files = resumesInput.files;
+      if (!files || files.length === 0) { updateReadiness(); return; }
+      [...files].forEach((f, idx) => {
+        const div = document.createElement('div');
+        div.className = 'file-chip d-inline-flex align-items-center gap-2 px-3 py-2 bg-body-secondary';
+        div.innerHTML = `<i class="bi bi-file-earmark-text"></i>
+                       <span class="fw-semibold small">${f.name}</span>
+                       <span class="text-secondary small">(${(f.size / 1024).toFixed(1)} KB)</span>
+                       <button type="button" class="btn btn-sm btn-outline-danger border-0" title="Remove" aria-label="Remove file">
+                         <i class="bi bi-x-lg"></i>
+                       </button>`;
+        div.querySelector('button').addEventListener('click', () => removeFile(idx));
+        fileChips.appendChild(div);
+      });
+      updateReadiness();
+    }
+
+    function removeFile(index) {
+      const dt = new DataTransfer();
+      [...resumesInput.files].forEach((f, i) => { if (i !== index) dt.items.add(f); });
+      resumesInput.files = dt.files;
+      renderChips();
+    }
+
+    function updateReadiness() {
+      const hasJD = jd.value.trim().length >= 1;
+      const filesCount = resumesInput.files?.length || 0;
+      let pct = 0;
+      if (hasJD) pct += 50;
+      if (filesCount > 0) pct += 50;
+      readyBar.style.width = pct + '%';
+      readyBar.textContent = pct + '%';
+      readyHint.textContent = pct === 100 ? 'All set—go ahead and submit.' : 'Add a clear JD and at least one resume.';
+    }
+
+    form.addEventListener('submit', function (e) {
+      if (!form.checkValidity()) {
+        e.preventDefault(); e.stopPropagation();
+        showToast('Please complete the required fields.');
+      }
+      else {
+        submitBtn.querySelector('.submit-label').classList.add('d-none');
+        submitBtn.querySelector('.submit-loading').classList.remove('d-none');
+        submitBtn.disabled = true;
+      }
+      form.classList.add('was-validated');
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        form.requestSubmit();
+      }
+    });
+
+    clearBtn.addEventListener('click', () => {
+      form.reset();
+      renderChips();
+      updateJDStats();
+      form.classList.remove('was-validated');
+    });
+
+    function showToast(msg) {
+      const toastEl = document.getElementById('toastHint');
+      toastEl.querySelector('.toast-body').textContent = msg;
+      const t = new bootstrap.Toast(toastEl, { delay: 2500 });
+      t.show();
+    }
+
+    setTimeout(() => { new bootstrap.Toast(document.getElementById('toastHint'), { delay: 3000 }).show(); }, 600);
+
+    renderChips();
+  </script>
+</body>
+
+</html>

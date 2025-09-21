@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>Results - AI Resume Ranker</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet" />
+  <style>
+    body {
+      background: radial-gradient(1100px 600px at 10% -10%, #e9f1ff 0%, transparent 55%),
+        radial-gradient(1000px 500px at 100% 0%, #eafff4 0%, transparent 55%),
+        linear-gradient(180deg, #f7f8fb 0%, #ffffff 70%);
+      min-height: 100dvh;
+      transition: background-color 0.3s ease;
+    }
+
+
+    [data-bs-theme="dark"] body {
+      background: radial-gradient(1100px 600px at 10% -10%, #2c2f38 0%, transparent 55%),
+        radial-gradient(1000px 500px at 100% 0%, #343a44 0%, transparent 55%),
+        linear-gradient(180deg, #2a2f3a 0%, #181d25 70%);
+    }
+
+    .blur-card {
+      background: rgba(255, 255, 255, .85);
+      border: 1px solid rgba(0, 0, 0, .06);
+      border-radius: 1rem;
+      backdrop-filter: blur(8px);
+      box-shadow: 0 10px 30px rgba(16, 24, 40, .06);
+      transition: background 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    [data-bs-theme="dark"] .blur-card {
+      background: rgba(20, 22, 25, .6);
+      border-color: rgba(255, 255, 255, .06);
+      box-shadow: 0 10px 30px rgba(16, 24, 40, .2);
+    }
+
+    .navbar-dark {
+      background-color: #343a44;
+      transition: background-color 0.3s ease;
+    }
+
+    [data-bs-theme="dark"] .navbar-dark {
+      background-color: #1b1f26;
+    }
+
+    .table-dark {
+      background-color: #2c2f38;
+    }
+
+    .table-dark th,
+    .table-dark td {
+      color: #e9f1ff;
+    }
+
+    [data-bs-theme="dark"] .table-dark th,
+    [data-bs-theme="dark"] .table-dark td {
+      color: #cfd8e3;
+    }
+
+    .navbar-brand,
+    .nav-link {
+      color: #ffffff;
+      transition: color 0.3s ease;
+    }
+
+
+    [data-bs-theme="dark"] .navbar-brand,
+    [data-bs-theme="dark"] .nav-link {
+      color: #e1e1e1;
+    }
+
+    .form-control,
+    .input-group-sm .form-control,
+    .btn-outline-secondary,
+    .btn-outline-primary,
+    .badge-soft {
+      transition: background-color 0.3s ease, color 0.3s ease;
+    }
+
+    [data-bs-theme="dark"] .form-control,
+    [data-bs-theme="dark"] .input-group-sm .form-control {
+      background-color: #3a3f48;
+      color: #ffffff;
+      border-color: #4e555d;
+    }
+
+    [data-bs-theme="dark"] .btn-outline-secondary,
+    [data-bs-theme="dark"] .btn-outline-primary {
+      background-color: transparent;
+      color: #ffffff;
+      border-color: #4e555d;
+    }
+
+    .score-bar {
+      height: .75rem;
+      border-radius: .5rem;
+      background: rgba(13, 110, 253, .15);
+      overflow: hidden;
+      transition: background-color 0.3s ease;
+    }
+
+    [data-bs-theme="dark"] .score-bar {
+      background: rgba(0, 123, 255, .15);
+    }
+
+    .highlight {
+      background: #fff3cd;
+      padding: 0 .25rem;
+      border-radius: .25rem;
+    }
+
+    [data-bs-theme="dark"] .highlight {
+      background: #494949;
+    }
+
+    .badge-soft {
+      background-color: rgba(13, 110, 253, .12);
+      color: #0d6efd;
+    }
+
+    [data-bs-theme="dark"] .badge-soft {
+      background-color: rgba(13, 110, 253, .18);
+      color: #88c8ff;
+    }
+
+    .tiny {
+      font-size: .925rem;
+      color: #667085;
+    }
+
+    [data-bs-theme="dark"] .tiny {
+      color: #98a2b3;
+    }
+
+    .modal-content {
+      background-color: #2c2f38;
+      color: #e9f1ff;
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+
+    [data-bs-theme="dark"] .modal-content {
+      background-color: #181d25;
+    }
+
+    .modal-header {
+      border-bottom: 1px solid #4e555d;
+    }
+
+    [data-bs-theme="dark"] .modal-header {
+      border-bottom: 1px solid #888;
+    }
+
+    .modal-backdrop {
+      z-index: -1;
+    }
+
+    .modal-body {
+      max-height: 60vh;
+      overflow-y: auto;
+    }
+
+    .table-responsive {
+      width: 100%;
+      overflow-x: hidden !important;
+      -webkit-overflow-scrolling: touch;
+    }
+
+
+    #resultTable {
+      width: 100%;
+      table-layout: fixed;
+      border-collapse: collapse;
+      border-spacing: 0;
+    }
+
+    #resultTable th,
+    #resultTable td {
+      padding: .45rem .6rem;
+      vertical-align: middle;
+    }
+
+    #resultTable col.filename {
+      width: 35%;
+    }
+
+    #resultTable col.score {
+      width: 12%;
+    }
+
+    #resultTable col.exp {
+      width: 12%;
+    }
+
+    #resultTable col.actions {
+      width: 21%;
+    }
+
+    */ #resultTable col.decision {
+      width: 20%;
+    }
+
+    .filename-cell {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    #resultTable thead th {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+
+    #resultTable td:nth-child(2),
+    #resultTable td:nth-child(3) {
+      font-variant-numeric: tabular-nums;
+    }
+
+    .actions-stack {
+      display: grid;
+      grid-auto-rows: min-content;
+      gap: .25rem;
+      justify-content: start;
+    }
+
+    #resultTable .btn.btn-sm {
+      padding: .3rem .55rem;
+      line-height: 1;
+      border-radius: .4rem;
+      white-space: nowrap;
+    }
+
+
+
+    @media (max-width:576px) {
+      #resultTable col.filename {
+        width: 38%;
+      }
+
+      #resultTable col.score {
+        width: 12%;
+      }
+
+      #resultTable col.exp {
+        width: 12%;
+      }
+
+      #resultTable col.actions {
+        width: 20%;
+      }
+
+      #resultTable col.decision {
+        width: 18%;
+      }
+    }
+
+    #previewModal .modal-content {
+      background: #ffffff !important;
+      color: #111111 !important;
+    }
+
+    #previewModal .modal-header,
+    #previewModal .modal-body {
+      background: #ffffff !important;
+      color: #111111 !important;
+    }
+
+    #resumePreviewHtml,
+    #resumePreviewHtml * {
+      background: #ffffff !important;
+      color: #111111 !important;
+    }
+
+    #resumePreviewHtml img {
+      max-width: 100%;
+      height: auto;
+    }
+
+    #kwBadge {
+      display: inline-block;
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      vertical-align: middle;
+    }
+
+
+    #kwInput {
+      min-width: 0;
+    }
+  </style>
+
+</head>
+
+<body>
+
+
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm">
+    <div class="container">
+      <a class="navbar-brand fw-semibold" href="{{ url_for('index') }}">
+        AI Resume Ranker
+      </a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div id="navMenu" class="collapse navbar-collapse">
+        <ul class="navbar-nav ms-auto">
+          <li class="nav-item"><a class="nav-link" href="{{ url_for('index', fresh=1) }}">
+              <i class="bi bi-house-door me-1"></i>Home
+            </a></li>
+          <li class="nav-item"><a class="nav-link" href="{{ url_for('history') }}"><i
+                class="bi bi-clock-history me-1"></i>Feedback History</a></li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <header class="py-4">
+    <div class="container">
+      <div class="d-flex flex-wrap gap-3 justify-content-between align-items-center">
+        <div>
+          <h2 class="mb-1">Top Ranked Candidates</h2>
+          <div class="tiny">Sorted by match score. Use filters or click column headers to sort.</div>
+        </div>
+        <div class="d-flex align-items-center gap-3 toolbar-sticky">
+          <span class="badge rounded-pill text-bg-primary-subtle text-primary px-3 py-2">
+            <i class="bi bi-people me-1"></i> {{ ranked|length }} candidates
+          </span>
+          <div class="form-check form-switch m-0">
+            <input class="form-check-input" type="checkbox" id="themeToggle">
+            <label class="form-check-label" for="themeToggle"><i class="bi bi-moon-stars me-1"></i>Dark mode</label>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="container mb-5">
+    <div class="blur-card p-4 p-lg-5">
+
+      <form method="GET" action="{{ url_for('index') }}" class="row g-3 align-items-end mb-4">
+        <div class="col-md-3">
+          <label class="form-label fw-semibold">Minimum Score</label>
+          <input type="number" step="0.01" min="0" max="1" name="min_score" class="form-control"
+            value="{{ request.args.get('min_score', 0) or 0 }}" placeholder="e.g. 0.65">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label fw-semibold">Minimum Experience (yrs)</label>
+          <input type="number" min="0" name="min_exp" class="form-control"
+            value="{{ request.args.get('min_exp', 0) or 0 }}" placeholder="e.g. 3">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">Keyword Filter</label>
+          <input type="text" name="keyword" id="kwInput" class="form-control"
+            value="{{ request.args.get('keyword', '') }}" placeholder="Python, NLP, Kubernetes…">
+        </div>
+        <div class="col-md-2 d-grid">
+          <button type="submit" class="btn btn-primary"><i class="bi bi-search me-1"></i>Apply</button>
+        </div>
+      </form>
+
+      <div class="row g-3 mb-4">
+        <div class="col-md-4">
+          <div class="p-3 rounded border bg-body">
+            <div class="tiny text-secondary">Best score</div>
+            <div class="d-flex align-items-center gap-2">
+              <i class="bi bi-trophy text-warning"></i>
+              <span class="fw-semibold">
+                {% if ranked|length %}{{ "%.3f"|format(ranked[0].score) }}{% else %}—{% endif %}
+              </span>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="p-3 rounded border bg-body">
+            <div class="tiny text-secondary">Avg experience (yrs)</div>
+            <div class="fw-semibold">
+              {% if ranked|length %}{{ "%.1f"|format(ranked|map(attribute='years_experience')|sum / (ranked|length))
+              }}{% else %}—{% endif %}
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="p-3 rounded border bg-body">
+            <div class="tiny text-secondary">Keyword</div>
+            <span class="badge badge-soft" id="kwBadge">
+              {% set kw = request.args.get('keyword','') %}
+              {{ kw if kw else "None" }}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <form method="POST" action="{{ url_for('feedback') }}">
+        <div class="table-responsive">
+          <table id="resultTable" class="table table-hover align-middle">
+            <colgroup>
+              <col class="filename">
+              <col class="score">
+              <col class="exp">
+              <col class="actions">
+              <col class="decision">
+            </colgroup>
+            <thead class="table-dark">
+              <tr>
+                <th>Filename</th>
+                <th>Score</th>
+                <th>Experience (yrs)</th>
+                <th>Actions</th>
+                <th>Decision</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for r in ranked %}
+              <tr>
+                <td class="filename-cell" title="{{ r.filename }}">
+                  {{ r.filename[:12] }}
+                </td>
+                <td title="{{ r.score }}">
+                  {{ ("%.6f"|format(r.score))[:5] }}
+                </td>
+                <td>
+                  {{ "%.1f"|format(r.years_experience|float) }}
+                </td>
+                <td>
+                  <div class="actions-stack">
+                    <button type="button" class="btn btn-info btn-sm" data-bs-toggle="modal"
+                      data-bs-target="#previewModal">
+                      Preview
+                    </button>
+
+
+
+
+                    <a class="btn btn-outline-primary btn-sm"
+                      href="{{ url_for('download_resume', filename=r.filename) }}" download="{{ r.filename }}">
+                      <i class="bi bi-download me-1"></i>Download
+                    </a>
+                  </div>
+                </td>
+
+                <td>
+                  <select class="form-select form-select-sm" name="decision_{{ r.filename }}">
+                    <option value="">-- No decision --</option>
+                    <option value="selected">✅ Select</option>
+                    <option value="rejected">❌ Reject</option>
+                  </select>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+
+        </div>
+
+        <div class="d-flex justify-content-between">
+          <button type="submit" class="btn btn-success">Save Feedback</button>
+        </div>
+      </form>
+
+    </div>
+  </main>
+
+  <button id="toTop" class="btn btn-dark position-fixed bottom-0 end-0 m-4 d-none rounded-circle"
+    style="width:48px;height:48px;"><i class="bi bi-chevron-up"></i></button>
+  
+    
+  <div class="modal fade" id="previewModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header" style="justify-content: space-between;">
+          <h5 class="modal-title" id="resumePreviewTitle">Preview</h5>
+          <button style="color: black;background-color:#0dcaf0;" type="button" class="btn" data-bs-dismiss="modal"
+            aria-label="Close">X</button>
+        </div>
+        <div class="modal-body" style="height:70vh; padding:0;">
+          <iframe id="resumePreviewFrame" src="about:blank"
+            style="border:0; width:100%; height:100%; display:block;"></iframe>
+          <div id="resumePreviewHtml" style="display:none; width:100%; height:100%; overflow:auto; padding:1rem;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://unpkg.com/mammoth/mammoth.browser.min.js"></script>
+
+  <script>
+
+    const html = document.documentElement;
+    const themeToggle = document.getElementById('themeToggle');
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme) {
+      html.setAttribute('data-bs-theme', savedTheme);
+      themeToggle && (themeToggle.checked = savedTheme === 'dark');
+    } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      html.setAttribute('data-bs-theme', 'dark');
+      themeToggle && (themeToggle.checked = true);
+    }
+    themeToggle && themeToggle.addEventListener('change', () => {
+      const t = themeToggle.checked ? 'dark' : 'light';
+      html.setAttribute('data-bs-theme', t);
+      localStorage.setItem('theme', t);
+    });
+
+
+    const toTop = document.getElementById('toTop');
+    window.addEventListener('scroll', () => {
+      toTop.classList.toggle('d-none', window.scrollY < 300);
+    });
+    toTop.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+    (function () {
+      const form = document.querySelector('form[action="{{ url_for("index") }}"]');
+      if (!form) return;
+
+      const scoreInput = form.querySelector('input[name="min_score"]');
+      const expInput = form.querySelector('input[name="min_exp"]');
+
+      function ensureZero(el) {
+        if (!el) return;
+        if (el.value === '' || el.value === null) el.value = '0';
+      }
+
+      scoreInput && scoreInput.addEventListener('blur', () => ensureZero(scoreInput));
+      expInput && expInput.addEventListener('blur', () => ensureZero(expInput));
+
+
+      form.addEventListener('submit', (e) => {
+        ensureZero(scoreInput);
+        ensureZero(expInput);
+      });
+    })();
+  </script>
+
+  <script>
+    (function () {
+
+      function b64url(str) {
+        return btoa(unescape(encodeURIComponent(str))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+      }
+
+
+      const PREVIEW_TEMPLATE = "{{ url_for('preview_bin', id='__TOKEN__') }}";
+      const buildPreviewUrl = (filename) => PREVIEW_TEMPLATE.replace('__TOKEN__', b64url(filename));
+
+      let _pdfBlobUrl = null;
+
+
+      function showIframe(url) {
+        const frame = document.getElementById('resumePreviewFrame');
+        const htmlBox = document.getElementById('resumePreviewHtml');
+        if (htmlBox) {
+          htmlBox.style.display = 'none';
+          htmlBox.innerHTML = '';
+        }
+        if (frame) {
+          frame.style.display = 'block';
+          frame.src = url || 'about:blank';
+        }
+      }
+
+
+      function showHtml(html) {
+        const frame = document.getElementById('resumePreviewFrame');
+        const htmlBox = document.getElementById('resumePreviewHtml');
+        if (frame) { frame.style.display = 'none'; frame.src = 'about:blank'; }
+        if (htmlBox) { htmlBox.style.display = 'block'; htmlBox.innerHTML = html || '<p class="text-muted">No content</p>'; }
+      }
+
+      document.addEventListener('hidden.bs.modal', (e) => {
+        if (e.target && e.target.id === 'previewModal') {
+          const frame = document.getElementById('resumePreviewFrame');
+          if (frame) frame.src = 'about:blank';
+          if (_pdfBlobUrl) { URL.revokeObjectURL(_pdfBlobUrl); _pdfBlobUrl = null; }
+        }
+      });
+
+
+      async function renderPdfViaBlob(url) {
+        const res = await fetch(url, { credentials: 'same-origin', cache: 'no-store' });
+        if (!res.ok) throw new Error('pdf-fetch-failed');
+        const raw = await res.blob();
+        const pdf = new Blob([raw], { type: 'application/pdf' });
+        _pdfBlobUrl = URL.createObjectURL(pdf);
+
+
+        const frame = document.getElementById('resumePreviewFrame');
+        frame.src = _pdfBlobUrl;
+      }
+
+
+      async function renderDocLikeWithMammoth(url) {
+        const res = await fetch(url, { credentials: 'same-origin', cache: 'no-store' });
+        if (!res.ok) throw new Error('doc-fetch-failed');
+        const buf = await res.arrayBuffer();
+        const result = await mammoth.convertToHtml({ arrayBuffer: buf }, { includeDefaultStyleMap: true });
+        showHtml(`<div class="docx">${result.value}</div>`);
+      }
+
+      function showIframe(url) {
+        const frame = document.getElementById('resumePreviewFrame');
+        const htmlBox = document.getElementById('resumePreviewHtml');
+        if (htmlBox) { htmlBox.style.display = 'none'; htmlBox.innerHTML = ''; }
+        if (frame) { frame.style.display = 'block'; frame.src = url || 'about:blank'; }
+      }
+
+      async function openPreview(filename) {
+        if (!filename) return;
+        const fileUrl = buildPreviewUrl(filename);
+        const lowerName = filename.toLowerCase();
+
+        const title = document.getElementById('resumePreviewTitle');
+        if (title) title.textContent = 'Preview: ' + filename;
+        const modalEl = document.getElementById('previewModal');
+        const modal = modalEl ? bootstrap.Modal.getOrCreateInstance(modalEl) : null;
+        modal && modal.show();
+
+        try {
+          if (lowerName.endsWith('.pdf')) {
+            showIframe('about:blank');
+            await renderPdfViaBlob(fileUrl);
+            return;
+          }
+          if (['.doc', '.docx', '.rtf'].some(ext => lowerName.endsWith(ext))) {
+            showHtml('<div class="text-muted p-3">Loading preview…</div>');
+            await renderDocLikeWithMammoth(fileUrl);
+            return;
+          }
+
+          window.open(fileUrl, '_blank', 'noopener');
+        } catch {
+          window.open(fileUrl, '_blank', 'noopener');
+        }
+      }
+
+
+      document.addEventListener('click', function (e) {
+        const btn = e.target.closest('button[data-bs-toggle="modal"][data-bs-target^="#previewModal"]');
+        if (!btn) return;
+        e.preventDefault(); e.stopPropagation();
+
+        const tr = btn.closest('tr');
+        const cell = tr ? tr.querySelector('.filename-cell') : null;
+        const filename = cell ? (cell.getAttribute('title') || cell.textContent.trim()) : null;
+
+        openPreview(filename);
+      });
+    })();
+  </script>
+
+  <script>
+    (function () {
+      const el = document.getElementById('kwBadge');
+      if (!el) return;
+      const full = el.textContent.trim();
+      if (!full || full.toLowerCase() === 'none') return;
+      el.setAttribute('data-bs-toggle', 'tooltip');
+      el.setAttribute('data-bs-title', full);
+      bootstrap.Tooltip.getOrCreateInstance(el, { placement: 'bottom', container: 'body', boundary: 'window' });
+    })();
+  </script>
+
+
+
+</body>
+
+</html>

@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <title>Feedback History - AI Resume Ranker</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <style>
+    :root { --card-r: 1.25rem; }
+    body {
+      background: radial-gradient(1200px 700px at 15% -10%, #e9f1ff 0%, transparent 55%),
+        radial-gradient(1100px 600px at 110% 0%, #eafff4 0%, transparent 55%),
+        linear-gradient(180deg, #f7f8fb 0%, #ffffff 70%);
+      min-height: 100dvh;
+      color: #212529;
+      transition: background-color .3s ease, color .3s ease;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+    }
+    [data-bs-theme="dark"] body {
+      background: radial-gradient(1200px 700px at 15% -10%, #2e353b 0%, transparent 55%),
+        radial-gradient(1100px 600px at 110% 0%, #343a40 0%, transparent 55%),
+        linear-gradient(180deg, #2b3035 0%, #2f353b 70%);
+      color: #e1e1e1;
+    }
+
+    .navbar { background-color: #212529 !important; }
+    .navbar.navbar-dark.bg-dark.shadow-sm { box-shadow: 0 0.25rem 0.75rem rgba(16, 24, 40, .12) !important; }
+    .navbar-brand, .nav-link { color: #ffffff !important; }
+
+    /* brand ko edge se door aur layout ko center feel dene ke liye */
+    .navbar .container-fluid { max-width: 1200px; margin: 0 auto; padding: 0 16px; }
+
+    .card {
+      border: 0;
+      border-radius: var(--card-r);
+      background: rgba(255, 255, 255, 0.85);
+      border: 1px solid rgba(0, 0, 0, 0.06);
+      backdrop-filter: blur(8px);
+      box-shadow: 0 10px 30px rgba(16, 24, 40, .06);
+      transition: background .3s ease, box-shadow .3s ease, transform .2s ease;
+    }
+    .card:hover { transform: translateY(-2px); box-shadow: 0 16px 40px rgba(16, 24, 40, .10); }
+    [data-bs-theme="dark"] .card {
+      background: rgba(20, 22, 25, 0.6);
+      border-color: rgba(255, 255, 255, 0.06);
+      box-shadow: 0 10px 30px rgba(16, 24, 40, .2);
+    }
+
+    .page-title { font-weight: 700; font-size: 1.6rem; letter-spacing: .2px; margin-bottom: 0; }
+
+    .metric {
+      display: inline-flex; align-items: center; gap: .5rem;
+      padding: .5rem .9rem; border-radius: 999px;
+      background: #eef2ff; border: 1px solid #e0e7ff; color: #24355a; font-weight: 500;
+    }
+    .metric .dot { width: 10px; height: 10px; border-radius: 50%; }
+    .metric.total .dot { background: #6c757d; }
+    .metric.sel { background: #e9f8ef; border-color: #c6f0d5; color: #145c32; }
+    .metric.sel .dot { background: #198754; }
+    .metric.rej { background: #fdebec; border-color: #f7cfd3; color: #7a1e24; }
+    .metric.rej .dot { background: #dc3545; }
+    [data-bs-theme="dark"] .metric { background: #32394a; border-color: #3b4253; color: #dbe4ff; }
+
+    .search-input {
+      max-width: 360px; padding: .55rem .9rem; border-radius: 999px;
+      background: #f8f9fa; border: 1px solid #ddd; transition: border-color .2s, box-shadow .2s, background-color .2s;
+    }
+    .search-input:focus { border-color: #0d6efd; outline: 0; box-shadow: 0 0 0 .2rem rgba(13,110,253,.15); background: #fff; }
+    [data-bs-theme="dark"] .search-input { background: #3a3f48; color: #fff; border-color: #444; }
+
+    .table thead th {
+      background: #f8f9fa; color: #212529; text-align: center; vertical-align: middle; position: sticky; top: 0; z-index: 1;
+    }
+    [data-bs-theme="dark"] .table thead th { background: #444c56; color: #e1e1e1; text-transform: capitalize;}
+    .table-hover tbody tr:hover { background: #f1f3f5; }
+    [data-bs-theme="dark"] .table-hover tbody tr:hover { background: #555c68; }
+
+    .table-responsive { max-height: 70vh; overflow: auto; border-radius: 12px; -webkit-overflow-scrolling: touch; }
+    .index-cell { text-align: center; font-weight: 600; opacity: .75; width: 64px; }
+
+    .btn-outline-secondary.btn-sm { border-color: #ced4da; }
+    [data-bs-theme="dark"] .btn-outline-secondary.btn-sm { color: #e9ecef; border-color: #4e555d; }
+    .btn-outline-secondary.btn-sm:hover { background-color: #f8f9fa; }
+    [data-bs-theme="dark"] .btn-outline-secondary.btn-sm:hover { background-color: #3a3f48; }
+
+    /* sticky back action */
+    .fab-back {
+      position: fixed;
+      right: 1rem;
+      bottom: 1rem;
+      z-index: 1080;
+      border-radius: 999px;
+      box-shadow: 0 10px 30px rgba(16, 24, 40, .16);
+      padding: .6rem 1rem;
+    }
+  </style>
+</head>
+<body>
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm">
+    <div class="container-fluid">
+      <a class="navbar-brand fw-bold" href="{{ url_for('index') }}">AI Resume Ranker</a>
+      <div class="collapse navbar-collapse">
+        <ul class="navbar-nav me-auto">
+          <li class="nav-item"><a class="nav-link" href="{{ url_for('index', fresh=1) }}"><i class="bi bi-house-door me-1"></i>Home</a></li>
+        </ul>
+        <div class="ms-auto d-flex align-items-center gap-3">
+          <div class="form-check form-switch m-0">
+            <input class="form-check-input" type="checkbox" id="themeToggle">
+            <label class="form-check-label" for="themeToggle"><i class="bi bi-moon-stars me-1"></i>Dark mode</label>
+          </div>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container py-4">
+    <div class="card p-4">
+      <div class="d-flex flex-wrap justify-content-between align-items-center mb-3">
+        <h3 class="page-title">Recruiter Feedback History</h3>
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+          <span class="metric total"><span class="dot"></span> Total: <strong id="countTotal">0</strong></span>
+          <span class="metric sel"><span class="dot"></span> Selected: <strong id="countSelected">0</strong></span>
+          <span class="metric rej"><span class="dot"></span> Rejected: <strong id="countRejected">0</strong></span>
+          <input id="searchBox" class="form-control form-control-sm search-input" type="search" placeholder="Search filename or decision…" />
+        </div>
+      </div>
+
+      <div class="d-flex gap-2 mb-3">
+        <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('export_csv') }}"><i class="bi bi-filetype-csv me-1"></i>CSV</a>
+        <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('export_xlsx') }}"><i class="bi bi-file-earmark-spreadsheet me-1"></i>XLSX</a>
+        <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('export_pdf') }}"><i class="bi bi-file-earmark-pdf me-1"></i>PDF</a>
+      </div>
+
+      {% if tables %}
+        {% for table in tables %}
+          <div class="table-responsive mb-3">
+            <div class="border rounded overflow-hidden">
+              {{ table|safe }}
+            </div>
+          </div>
+        {% endfor %}
+      {% else %}
+        <div class="alert alert-secondary mb-0">No feedback yet.</div>
+      {% endif %}
+    </div>
+  </div>
+
+
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    (function () {
+      const html = document.documentElement;
+      const toggle = document.getElementById('themeToggle');
+      const saved = localStorage.getItem('theme');
+      if (saved) {
+        html.setAttribute('data-bs-theme', saved);
+        if (toggle) toggle.checked = saved === 'dark';
+      } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        html.setAttribute('data-bs-theme', 'dark');
+        if (toggle) toggle.checked = true;
+      }
+      if (toggle) {
+        toggle.addEventListener('change', () => {
+          const t = toggle.checked ? 'dark' : 'light';
+          html.setAttribute('data-bs-theme', t);
+          localStorage.setItem('theme', t);
+        });
+      }
+    })();
+  </script>
+  <script>
+    (function () {
+      const tables = document.querySelectorAll('.card table');
+      if (!tables.length) return;
+      function findColIndex(headers, candidates) {
+        const set = headers.map(h => h.trim().toLowerCase());
+        for (const name of candidates) {
+          const i = set.indexOf(name);
+          if (i !== -1) return i;
+        }
+        return -1;
+      }
+      let total = 0, selected = 0, rejected = 0;
+      tables.forEach((table) => {
+        table.classList.add('table', 'table-striped', 'table-hover', 'align-middle', 'mb-0');
+        const theadRow = table.querySelector('thead tr');
+        if (theadRow && !theadRow.dataset.indexInjected) {
+          const th = document.createElement('th');
+          th.textContent = '#';
+          th.className = 'index-cell';
+          th.scope = 'col';
+          theadRow.insertBefore(th, theadRow.firstElementChild);
+          theadRow.dataset.indexInjected = 'true';
+        }
+        const headers = Array.from(table.querySelectorAll('thead th')).map(th => th.textContent);
+        const filenameCol = findColIndex(headers, ['filename', 'file name', 'resume', 'cv']);
+        const decisionCol = findColIndex(headers, ['decision', 'status', 'result']);
+        const rows = table.querySelectorAll('tbody tr');
+        rows.forEach((tr, i) => {
+          const cells = tr.querySelectorAll('td, th');
+          if (!cells.length) return;
+          if (!tr.dataset.indexInjected) {
+            const idx = document.createElement('th');
+            idx.className = 'index-cell';
+            idx.scope = 'row';
+            idx.textContent = String(i + 1);
+            tr.insertBefore(idx, tr.firstElementChild);
+            tr.dataset.indexInjected = 'true';
+          }
+          total += 1;
+          if (decisionCol >= 0 && tr.children[decisionCol]) {
+            const td = tr.children[decisionCol];
+            const val = (td.textContent || '').trim().toLowerCase();
+            let badgeClass = 'bg-secondary', label = val || '—';
+            if (val === 'selected') { badgeClass = 'bg-success'; selected += 1; }
+            else if (val === 'rejected') { badgeClass = 'bg-danger'; rejected += 1; }
+            td.innerHTML = `<span class="badge ${badgeClass} rounded-pill text-capitalize">${label}</span>`;
+            td.style.textAlign = 'center';
+          }
+        });
+      });
+      document.getElementById('countTotal').textContent = total;
+      document.getElementById('countSelected').textContent = selected;
+      document.getElementById('countRejected').textContent = rejected;
+
+      const searchBox = document.getElementById('searchBox');
+      if (searchBox) {
+        searchBox.addEventListener('input', function () {
+          const q = this.value.trim().toLowerCase();
+          tables.forEach((table) => {
+            const headers = Array.from(table.querySelectorAll('thead th')).map(th => th.textContent);
+            const filenameCol = (function () {
+              const set = headers.map(h => h.trim().toLowerCase());
+              return Math.max(set.indexOf('filename'), set.indexOf('file name'), set.indexOf('resume'), set.indexOf('cv'));
+            })();
+            const decisionCol = (function () {
+              const set = headers.map(h => h.trim().toLowerCase());
+              return Math.max(set.indexOf('decision'), set.indexOf('status'), set.indexOf('result'));
+            })();
+            table.querySelectorAll('tbody tr').forEach(tr => {
+              const fn = filenameCol >= 0 ? (tr.children[filenameCol]?.textContent || '') : tr.textContent;
+              const dc = decisionCol >= 0 ? (tr.children[decisionCol]?.textContent || '') : '';
+              const show = fn.toLowerCase().includes(q) || dc.toLowerCase().includes(q);
+              tr.style.display = show ? '' : 'none';
+            });
+          });
+        });
+      }
+    })();
+  </script>
+</body>
+</html>
