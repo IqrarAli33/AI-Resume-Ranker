@@ -1,0 +1,17 @@
+python-docx
+PyPDF2
+spacy
+nltk
+pandas
+numpy
+scikit-learn
+tqdm
+flashtext
+pdfminer.six
+flask
+PyMuPDF
+rapidfuzz
+reportlab
+xlsxwriter
+openpyxl
+# python -m spacy download en_core_web_sm 
