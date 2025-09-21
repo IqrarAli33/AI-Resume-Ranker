@@ -179,25 +179,7 @@ You can tweak these in `ranker.rank_resumes(...)` (defaults are sensible):
 
 ---
 
-## 📋 SRS coverage (quick)
-
-- Upload DOCX/PDF + JD → ✅  
-- Rank & shortlist with relevance → ✅  
-- Filters (score/experience/keyword) → ✅  
-- Preview/download → ✅  
-- Export CSV/XLSX/PDF → ✅  
-- Feedback & retrain → ✅ (basic LtR)  
-- Performance/scalability targets → ⚠️ validate with a 500-resume run on your hardware  
-- Security (auth/HTTPS/retention) → ⏳ to add for production
-
----
-
-## 📄 License
-
-Choose a license (e.g., MIT) and add it here.
-
----
-
 ## 🤝 Contributing
 
 PRs welcome. Please open issues for bugs or feature requests.
+
